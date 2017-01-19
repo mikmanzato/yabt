@@ -1,0 +1,33 @@
+#!/bin/sh
+# Yabt, main shell script.
+#
+# Usage:
+#   yabt [-l|--loglevel <dir>] [-c|--confdir <dir>] [-j|--job <job name>] [-f|--force]
+#
+# $Id$
+
+# Check that PHP is available
+PHP=/usr/bin/php
+if [ ! -x "$PHP" ] ; then
+	echo "$0: Error: Command-line PHP is missing" 2>&1
+	exit 1
+fi
+
+# Locate main PHP script
+if [ "$0" = "/usr/bin/yabt" ] ; then
+	YABT="/usr/share/yabt/yabt.php"
+elif [ "$0" = "/usr/local/bin/yabt" ] ; then
+	YABT="/usr/local/share/yabt/yabt.php"
+else
+	D=$(dirname $0)
+	D=$(dirname $D)
+	YABT="$D/lib/yabt.php"
+fi
+
+if [ ! -e "$YABT" ] ; then
+	echo "$0: Error: Can't locate main PHP script" 2>&1
+	exit 1
+fi
+
+# Run
+$PHP -f $YABT -- $1 $2 $3 $4 $5 $6 $7 $8 $9
