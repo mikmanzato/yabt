@@ -3,7 +3,7 @@ YABT - Yet Another Backup Tool
 
 > TODO: Documentation in progress
 
-This is my take at building a small backup system for home or small office use. 
+This is my take at building a backup tool for home or small office use. 
 
 I've reviewed several existing open-source backup solutions but I found out 
 they were either too basic, too complicated, poorly extensible, or they just 
