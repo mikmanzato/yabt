@@ -11,7 +11,7 @@ namespace yabt;
 
 
 //------------------------------------------------------------------------------
-//! Generic configuration file
+//! Generic dump job
 //------------------------------------------------------------------------------
 abstract class DumpJob
 	extends BackupJob
