@@ -94,16 +94,11 @@ To uninstall, run:
 
 from the extracted package directory.
 
-How it works
-------------
-
-
 
 Quickstart
 ----------
 
-is already planned for execution
-
+(This section should contain a quick primer and basic configuration files.)
 
 
 Configuration
