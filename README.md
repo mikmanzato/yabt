@@ -1,8 +1,6 @@
 YABT - Yet Another Backup Tool
 ==============================
 
-> TODO: Documentation in progress
-
 This is my take at building a backup tool for home or small office use.
 
 I reviewed several existing open-source backup solutions but I found out
@@ -42,7 +40,6 @@ Yabt can execute backups of local directories using:
 Yabt is developed in PHP. It was originally written and tested on a
 Debian-based system and is known to run on Debian-based distributions.
 
-
 Requirements
 ------------
 
@@ -50,19 +47,13 @@ Yabt requires a working command-line php installation. On GNU/Linux systems,
 installing the `php-cli` package or equivalent should do. Yabt works on PHP 5.6
 as well as PHP 7.
 
-Yabt uses *tar* and *gzip* which are generally available on any GNU/Linux
+Yabt uses `tar` and `gzip` which are generally available on any GNU/Linux
 installation.
 
 Depending on the configured jobs a number of external utilities are needed. For
 example, if you configure a MySQL dump job the *mysqldump* program is required
 and must be installed separately. Dependencies are pointed out in the
 documentation for job configuration below.
-
-Yabt uses a couple of PHP libraries: *Smarty 3* for templates and *PHPMailer*
-to send e-mail. However they are embedded into the Yabt source code and release
-packages. However these libraries are included into the source code and release
-packages so there's no need to install them separately.
-
 
 Installation
 ------------
@@ -79,7 +70,8 @@ Also installed are:
   * a global cron job which runs yabt once every 10 minutes. Yabt  itself takes
     care of backup job scheduling.
   * logrotate configuration
-  * default configuration files (if you use the "-c" option)
+  * default configuration files, if you use the `-c` option. Note that these
+    configuration files will overwrite the existing ones you may have edited.
 
 I will soon release a puppet moudule which automates installation and
 configuration of Yabt.
@@ -88,7 +80,7 @@ configuration of Yabt.
 Uninstallation
 --------------
 
-To uninstall, run:
+To uninstall Yabt, run:
 
     ./uninstall.sh
 
@@ -565,7 +557,7 @@ the times is already installed. If you use rsync, you should consider
 configuring a rsync daemon on the remote server since this makes rsync much
 faster.
 
-Rsync backup jobs don't support rentention and
+Rsync backup jobs are natively incremental. However, retention is not supported.
 
 Configuration:
 
@@ -608,7 +600,7 @@ Example configuration file to back-up the home directory of user *myuser*:
 
     [rsync]
     source=/home/myuser/
-    destination=rsync://user:pass@backuphost
+    destination=user:pass@backuphost/var/backups
 
 
 #### Status notification job
@@ -668,6 +660,7 @@ are detected:
     [status-notification]
     complete=0
 
+
 Other issues
 ------------
 
@@ -681,20 +674,33 @@ Yabt is in execution.
 
 ### Logging
 
-Operation log files are stored in */var/log/yabt/yabt.log*. Log file rotation is
-delegated to the *logrotate* daemon (configuration in /etc/logrotate.d/yabt)
+Operation log files are stored in */var/log/yabt/yabt.log*. Log file rotation
+is delegated to the *logrotate* daemon (configuration is in
+*/etc/logrotate.d/yabt*)
 
 The log file can be changed by editing the `log_file` configuration property in
 the `[log]` section of the main configuration file. Note that if you change the
 default log file you must also take care of adjusting log rotation accordingly.
 
-### Command line arguments
+### Scheduling
 
-Manually running Yabt is possible, you just run:
+After installation Yabt automatically runs every minute as a cron job.
+Individual Jobs are run according to the scheduling configured in the
+job files.
+
+If you want to schedule a different cron execution policy you can edit file
+*/etc/cron.d/yabt*.
+
+
+Running Yabt from the command line
+----------------------------------
+
+Yabt can be run manually from the command line or programmatically from a
+script. The syntax is:
 
     /usr/local/bin/yabt [options...] [command]
 
-Options are:
+The following options are accepted:
 
   * `-c|--confdir <dir>`: Use directory *<dir>* as the configuration directory
     instead of the default directory */usr/lcoal/etc/yabt*
@@ -709,18 +715,37 @@ Options are:
 
   * `-v|--verbose`: Provide verbose info
 
-
-Commands are:
+The following commands are understood:
 
   * `execute`: the default command, run jobs according to scheduling
   * `status`: display the status of all jobs on the command line
   * `notify-status`: send a notification with the full job status
 
-### Scheduling
 
-After installation Yabt automatically runs every minute as a cron job.
-Individual Jobs are run according to the scheduling configured in the
-job files.
+Licensing
+---------
 
-If you want to schedule a different cron execution policy you can edit file
-*/etc/cron.d/yabt*.
+Copyright (c) Michele Manzato.
+
+Yabt is open source software licensed under the MIT License. Basically, you are
+free to use Yabt in any commercial or non-commercial project, you can modify
+the code as you wish as long as you don't change licensing and retain the
+original copyright statement.
+
+Yabt includes a copy of the following PHP libraries:
+
+  * [PHPMailer](http://...) - Version 5.1
+
+    Copyright (c) 2004-2009 Andy Provost. All Rights Reserved.
+    Copyright (c) 2001-2003 Brent R. Matzelle.
+
+    PHPMailer is licensed under the Lesser General Public License (LGPL).
+
+
+Disclaimer
+----------
+
+Yabt is released as-is. I cannot guarantee fitness of Yabt for any particular
+use and I cannot assume any direct or indirect liability should your system or
+your data be damaged or lost due to proper or improper use of Yabt, or due to
+bugs in Yabt itself or third-party programs run by Yabt.
