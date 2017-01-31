@@ -257,7 +257,7 @@ a separated section of the config file named after the dump job:
 
 #### Directory dump job
 
-This kind of job dumps a local filesystem directory into a tar.gz file.
+Dumps a local directory into a *.tar.gz* file.
 
 Configuration file:
 
@@ -294,13 +294,15 @@ the rsync job, the rdiff-backup job  or the duplicity job.
 
 #### Subversion repositories dump job
 
-Dumps all subversion repositories. Incremental dumps are supported.
+Dumps [Subversion](https://subversion.apache.org/) repositories.
 
 Subversion repositories are dumped using the `svnadmin dump` command. Hence,
 this job requires the `svnadmin` command, which is generally available in the
 `subversion` package of your GNU/Linux distribution. Also the job must run on
 the host which serves SVN repositories, that is, where the svn repository
 directory is a local directory.
+
+Incremental dumps are supported.
 
 Configuration file:
 
@@ -350,7 +352,7 @@ Example configuration file:
 
 #### MySQL dump job
 
-Dumps a MySQL database.
+Dumps a [MySQL](https://www.mysql.com/) database.
 
 Dumps are performed using the `mysqldump` utility which is generally available
 in the `mysql-client` package of your GNU/Linux distribution. It can be run by
@@ -604,6 +606,11 @@ Example configuration file to back-up the home directory of user *myuser*:
 
 
 #### Status notification job
+
+Send a notification about the status of the configured jobs. The notification
+may be always sent or sent only if problems are detected.
+
+Configuration file:
 
     [job]
     type=yabt\StatusNotificationJob
