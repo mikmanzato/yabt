@@ -419,7 +419,7 @@ Example configuration file:
 #### Duplicity job
 
 Back up a local directory using
-[duplicity](http://http://duplicity.nongnu.org/), an *encrypted
+[duplicity](http://duplicity.nongnu.org/), an *encrypted
 bandwidth-efficient backup using the rsync algorithm*. Duplicity backs up
 directories by producing encrypted tar-format volumes and uploading them to a
 remote or local file server.
