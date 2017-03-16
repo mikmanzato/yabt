@@ -47,7 +47,7 @@ Yabt requires a working command-line php installation. On GNU/Linux systems,
 installing the `php-cli` package or equivalent should do. Yabt works on PHP 5.6
 as well as PHP 7.
 
-Yabt uses `tar` and `gzip` which are generally available on any GNU/Linux
+Yabt uses `tar` and `bzip2` which are generally available on any GNU/Linux
 installation.
 
 Depending on the configured jobs a number of external utilities are needed. For
