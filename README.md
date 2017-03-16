@@ -770,6 +770,7 @@ The following options are accepted:
     > **Note:** Log levels are the same as PHP's `LOG_XXX` constants
 
   * `-v|--verbose`: Provide verbose info
+  * `--version`: Display Yabt version and exit
 
 The following commands are understood:
 

@@ -15,6 +15,8 @@ namespace yabt;
 //------------------------------------------------------------------------------
 abstract class Main
 {
+	const VERSION="1.1.0";
+
 	public static $confDir = NULL;
 	public static $varDir = '/var';
 	public static $lockDir = NULL;
@@ -82,6 +84,10 @@ abstract class Main
 				case '--verbose':
 					self::$verbose = TRUE;
 					break;
+
+				case '--version':
+					echo self::VERSION."\n";
+					exit(0);
 
 				case '--vardir':
 					self::$varDir = array_shift($argv);
