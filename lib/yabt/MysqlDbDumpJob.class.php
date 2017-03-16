@@ -17,6 +17,11 @@ class MysqlDbDumpJob
 	extends SimpleDumpJob
 {
 	const SECTION = 'mysqldb';
+	const DEFAULT_MYSQLDUMP_EXE = "/usr/bin/mysqldump";
+
+	private $mysqldumpExe;
+	private $bzip2Exe;
+	private $tarExe;
 
 	private $user;
 	private $password;
@@ -38,6 +43,12 @@ class MysqlDbDumpJob
 		$this->dbname = $this->conf->getRequired(self::SECTION, 'dbname');
 		$this->port = $this->conf->get(self::SECTION, 'port');
 		$this->storageDir = $this->conf->get(self::SECTION, 'storage_dir', FALSE);
+		$this->mysqldumpExe = $this->conf->get(self::SECTION, 'mysqldump_exe', self::DEFAULT_MYSQLDUMP_EXE);
+		if (!file_exists($this->mysqldumpExe) && !is_executable($this->mysqldumpExe))
+			throw new \Exception("Not found or not executable: ".$this->mysqldumpExe);
+
+		$this->bzip2Exe = MainConf::getGlobal()->getBzip2Exe();
+		$this->tarExe = MainConf::getGlobal()->getTarExe();
 	}
 
 	//--------------------------------------------------------------------------
@@ -66,18 +77,20 @@ class MysqlDbDumpJob
 		$this->checkAvailableSpace();
 
 		$dumpInfo = new MysqlDbDumpInfo();
-		$cmd = sprintf("/usr/bin/mysqldump --skip-dump-date -u%s -p%s -h%s %s %s",
+		$cmd = sprintf("%s --skip-dump-date -u%s -p%s -h%s %s %s",
+				escapeshellarg($this->mysqldumpExe),
 				escapeshellarg($this->user),
 				escapeshellarg($this->password),
 				escapeshellarg($this->hostname),
 				$this->port ? "-P{$this->port}" : "",
 				escapeshellarg($this->dbname));
 
-		$cmd = $cmd." 2> /dev/null | /bin/bzip2";
+		$cmd = $cmd.sprintf(" 2> /dev/null | %s",
+					        escapeshellarg($this->bzip2Exe));
 
 		$fTarget1 = $fTarget2 = NULL;
 		if ($this->storageDir) {
-			$time = mktime(0, 0, 0, 1, 1, 2015, 0);
+			$time = mktime(0, 0, 0, 1, 1, 2015);
 			$fnames = array();
 
 			// Backup the database
@@ -108,10 +121,11 @@ class MysqlDbDumpJob
 
 				$target2 = "storage.tar.bz2";
 				$fTarget2 = Fs::joinPath($tmpdir, $target2);
-				$cmd = sprintf("/bin/tar jcf %s -C %s %s",
-						escapeshellarg($fTarget2),
-						escapeshellarg($this->storageDir),
-						implode(" ", $e));
+				$cmd = sprintf("%s jcf %s -C %s %s",
+							   escapeshellarg($this->tarExe),
+							   escapeshellarg($fTarget2),
+							   escapeshellarg($this->storageDir),
+							   implode(" ", $e));
 
 				$this->log(LOG_DEBUG, "Running: $cmd");
 				Shell::exec($cmd);
@@ -131,10 +145,11 @@ class MysqlDbDumpJob
 			$target = "{$this->dbname}-{$dumpInfo->ts}.tar";
 			$tmpTarget = Fs::mkExactTempName($target);
 			$pattern = "/^{$this->dbname}-.*\\.tar\$/";
-			$cmd = sprintf("/bin/tar cf %s -C %s %s",
-					escapeshellarg($tmpTarget),
-					escapeshellarg($tmpdir),
-					implode(" ", $e));
+			$cmd = sprintf("%s cf %s -C %s %s",
+						   escapeshellarg($this->tarExe),
+						   escapeshellarg($tmpTarget),
+						   escapeshellarg($tmpdir),
+						   implode(" ", $e));
 
 			try {
 				$this->log(LOG_DEBUG, "Running: $cmd");

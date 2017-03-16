@@ -69,7 +69,9 @@ class JobStatus
 	//--------------------------------------------------------------------------
 	public function save()
 	{
-		file_put_contents($this->fname, serialize($this));
+		$w = @file_put_contents($this->fname, serialize($this));
+		if ($w === FALSE)
+			throw new \Exception("Failed to write to file: ".$this->fname);
 	}
 
     //--------------------------------------------------------------------------

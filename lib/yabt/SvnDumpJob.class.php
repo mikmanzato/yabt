@@ -17,6 +17,12 @@ class SvnDumpJob
 	extends DumpJob
 {
 	const SECTION = 'svn';
+	const DEFAULT_SVNADMIN_EXE = "/usr/bin/svnadmin";
+	const DEFAULT_SVNLOOK_EXE = "/usr/bin/svnlook";
+
+	private $svnadminExe;
+	private $svnlookExe;
+	private $bzip2Exe;
 
 	//! The parent path of the repositories to export
 	private $parentPath;
@@ -29,6 +35,16 @@ class SvnDumpJob
 		parent::__construct($conf, self::SECTION);
 
 		$this->parentPath = $this->conf->getRequired(self::SECTION, 'parent_path');
+
+		$this->svnadminExe = $this->conf->get(self::SECTION, 'svnadmin_exe', self::DEFAULT_SVNADMIN_EXE);
+		if (!file_exists($this->svnadminExe) && !is_executable($this->svnadminExe))
+			throw new \Exception("Not found or not executable: ".$this->svnadminExe);
+
+		$this->svnlookExe = $this->conf->get(self::SECTION, 'svnlook_exe', self::DEFAULT_SVNLOOK_EXE);
+		if (!file_exists($this->svnlookExe) && !is_executable($this->svnlookExe))
+			throw new \Exception("Not found or not executable: ".$this->svnlookExe);
+
+		$this->bzip2Exe = MainConf::getGlobal()->getBzip2Exe();
 	}
 
 	//--------------------------------------------------------------------------
@@ -89,7 +105,9 @@ class SvnDumpJob
 				$suffix = 'inc';
 
 			// Get latest committed revision in repository
-			$cmd = sprintf("/usr/bin/svnlook youngest %s", escapeshellarg($repoPath));
+			$cmd = sprintf("%s youngest %s",
+			               escapeshellarg($this->svnlookExe),
+			               escapeshellarg($repoPath));
 			$result = Shell::exec($cmd);
 			$dumpInfo->revision = (int) $result;
 			$seq = $dumpInfo->sequence->get();
@@ -101,15 +119,19 @@ class SvnDumpJob
 				$tmpTarget = Fs::mkExactTempName($target);
 
 				if ($dumpInfo->isFull())
-					$cmd = sprintf("/usr/bin/svnadmin dump %s", escapeshellarg($repoPath));
+					$cmd = sprintf("%s dump %s",
+                                   escapeshellarg($this->svnadminExe),
+					               escapeshellarg($repoPath));
 				else
-					$cmd = sprintf("/usr/bin/svnadmin dump %s --incremental --revision %d:%d",
-							escapeshellarg($repoPath),
-							$prevDumpInfo->revision + 1,
-							$dumpInfo->revision);
+					$cmd = sprintf("%s dump %s --incremental --revision %d:%d",
+                                   escapeshellarg($this->svnadminExe),
+								   escapeshellarg($repoPath),
+								   $prevDumpInfo->revision + 1,
+								   $dumpInfo->revision);
 
-				$cmd = $cmd." 2> /dev/null";
-				$cmd = $cmd." | /bin/bzip2 > ".escapeshellarg($tmpTarget);
+				$cmd = $cmd.sprintf(" 2> /dev/null | %s > %s",
+							   escapeshellarg($this->bzip2Exe),
+							   escapeshellarg($tmpTarget));
 
 				$this->log(LOG_DEBUG, "Running: $cmd");
 				Shell::exec($cmd);
@@ -144,9 +166,11 @@ class SvnDumpJob
 			$target = "{$repoName}-{$dumpInfo->ts}.dump.bz2";
 			$tmpTarget = Fs::mkExactTempName($target);
 
-			$cmd = sprintf("/usr/bin/svnadmin dump %s", escapeshellarg($repoPath));
-			$cmd = $cmd." 2> /dev/null";
-			$cmd = $cmd." | /bin/bzip2 > ".escapeshellarg($tmpTarget);
+			$cmd = sprintf("%s dump %s 2> /dev/null | %s > %s",
+                           escapeshellarg($this->svnadminExe),
+			               escapeshellarg($repoPath),
+			               escapeshellarg($this->bzip2Exe),
+			               escapeshellarg($tmpTarget));
 
 			$this->log(LOG_DEBUG, "Running: $cmd");
 			Shell::exec($cmd);

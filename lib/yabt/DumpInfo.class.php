@@ -3,7 +3,7 @@
 /* 	Yabt
 
 	DumpInfo class implementation
-    
+
 	$Id$ */
 //------------------------------------------------------------------------------
 
@@ -41,11 +41,10 @@ class DumpInfo
 			if (!$dumpInfo instanceof self)
 				throw new \Exception("Invalid DumpInfo: $path");
 			Fs::unlink($path);
+			return $dumpInfo;
 		}
 		else
-			$dumpInfo = FALSE;
-
-		return $dumpInfo;
+			return NULL;
 	}
 
     //--------------------------------------------------------------------------

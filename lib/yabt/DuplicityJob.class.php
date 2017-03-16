@@ -22,7 +22,9 @@ class DuplicityJob
 	const SECTION = 'duplicity';
 	const DEFAULT_RETENTION_PERIOD = 60;
 	const DEFAULT_FULL_PERIOD = 15;
+	const DEFAULT_DUPLICITY_EXE = "/usr/bin/duplicity";
 
+	private $duplicityExe;
 	private $sourceDir;
 	private $targetUrl;
 	private $retentionPeriod;
@@ -42,6 +44,10 @@ class DuplicityJob
 		$this->retentionPeriod = (int) $this->conf->get(self::SECTION, 'retention_period', self::DEFAULT_RETENTION_PERIOD);
 		$this->fullPeriod = (int) $this->conf->get(self::SECTION, 'full_period', self::DEFAULT_FULL_PERIOD);
 		$this->passphrase = $this->conf->getRequired(self::SECTION, 'passphrase');
+		$this->duplicityExe = $this->conf->get(self::SECTION, 'duplicity_exe', self::DEFAULT_DUPLICITY_EXE);
+
+		if (!file_exists($this->duplicityExe) && !is_executable($this->duplicityExe))
+			throw new Exception("Not found or not exdecutable: ".$this->duplicityExe);
 	}
 
 	//--------------------------------------------------------------------------
@@ -65,8 +71,6 @@ class DuplicityJob
 	//------------------------------------------------------------------------------
 	protected function doRun()
 	{
-		$exe = "/usr/bin/duplicity";
-
 		// Read the status file
 		$sequence = $this->jobStatus->sequence;
 		if (!$sequence)
@@ -79,7 +83,7 @@ class DuplicityJob
 		putenv("PASSPHRASE={$this->passphrase}");
 //		$cmd = sprintf("duplicity %s %s %s",
 		$cmd = sprintf("%s %s %s %s 2>&1",
-					   $exe,
+					   $this->duplicityExe,
 					   $type,
 					   escapeshellarg($this->sourceDir),
 					   escapeshellarg($this->targetUrl));
@@ -92,7 +96,7 @@ class DuplicityJob
 		// Run cleanup command
 		$n = $this->retentionPeriod / $this->fullPeriod;
 		$cmd = sprintf("%s remove-all-but-n-full %d --force %s",
-					   $exe,
+					   $this->duplicityExe,
 					   $n,
 					   escapeshellarg($this->targetUrl));
 

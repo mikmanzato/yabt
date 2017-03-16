@@ -16,6 +16,8 @@ namespace yabt;
 abstract class Main
 {
 	public static $confDir = NULL;
+	public static $varDir = '/var';
+	public static $lockDir = NULL;
 	public static $jobsConfDir = NULL;
 	public static $mainConf = array();
 	public static $jobQueue = NULL;
@@ -81,6 +83,12 @@ abstract class Main
 					self::$verbose = TRUE;
 					break;
 
+				case '--vardir':
+					self::$varDir = array_shift($argv);
+					if (!self::$varDir)
+						throw new \Exception("Missing parameter to --vardir option");
+					break;
+
 				case 'execute':
 					self::$cmd = 'execute';
 					break;
@@ -113,18 +121,23 @@ abstract class Main
 		}
 
 		// Location of job configuration files
-		self::$jobsConfDir = self::$confDir."/jobs.d";
+		self::$jobsConfDir = Fs::joinPath(self::$confDir, "jobs.d");
+
+		// Lock directory
+		self::$lockDir = Fs::joinPath(self::$varDir, "/lock");
+		if (!is_dir(self::$lockDir))
+			Fs::mkdir(self::$lockDir, 0777, TRUE);
 
 		// Lock file
-		self::$lockFile = "/var/lock/yabt.lock";
+		self::$lockFile = Fs::joinPath(self::$lockDir, "/yabt.lock");
 
 		// Status directory
-		self::$statusDir = "/var/lib/yabt";
+		self::$statusDir = Fs::joinPath(self::$varDir, "/lib/yabt");
 		if (!is_dir(self::$statusDir))
-			Fs::mkdir(self::$statusDir);
+			Fs::mkdir(self::$statusDir, 0777, TRUE);
 
 		// Read main configuration
-		$mainConfFile = self::$confDir."/main.conf";
+		$mainConfFile = Fs::joinPath(self::$confDir, "main.conf");
 		MainConf::load($mainConfFile);
 
 		// Load all jobs into a queue

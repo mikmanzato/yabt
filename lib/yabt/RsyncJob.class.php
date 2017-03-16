@@ -17,7 +17,9 @@ class RsyncJob
 	extends BackupJob
 {
 	const SECTION = 'rsync';
+	const DEFAULT_RSYNC_EXE = "/usr/bin/rsync";
 
+	private $rsyncExe;
 	private $source;
 	private $destination;
 	private $password;			//!< Only for rsync:// protocol
@@ -37,6 +39,10 @@ class RsyncJob
 		if (!substr($this->destination, -1) != '/')
 			$this->destination .= '/';
 		$this->password = $this->conf->get(self::SECTION, 'password');
+		$this->rsyncExe = $this->conf->get(self::SECTION, 'rsync_exe', self::DEFAULT_RSYNC_EXE);
+
+		if (!file_exists($this->rsyncExe) && !is_executable($this->rsyncExe))
+			throw new \Exception("Not found or not executable: ".$this->rsyncExe);
 	}
 
 	//--------------------------------------------------------------------------
@@ -52,10 +58,8 @@ class RsyncJob
 	//------------------------------------------------------------------------------
 	protected function doRun()
 	{
-		$exe = "/usr/bin/rsync";
-
 		$cmd = sprintf("%s -aq %s %s",
-					   $exe,
+					   escapeshellarg($this->rsyncExe),
 					   escapeshellarg($this->source),
 					   escapeshellarg($this->destination));
 

@@ -18,6 +18,8 @@ class DirDumpJob
 {
 	const SECTION = 'dir';
 
+	private $tarExe;
+
 	//! The export path
 	private $path;
 
@@ -29,6 +31,7 @@ class DirDumpJob
 		parent::__construct($conf, self::SECTION);
 
 		$this->path = $this->conf->getRequired(self::SECTION, 'path');
+		$this->tarExe = MainConf::getGlobal()->getTarExe();
 	}
 
 	//--------------------------------------------------------------------------
@@ -76,7 +79,8 @@ class DirDumpJob
 		$seq = $dumpInfo->sequence->get();
 		$target = "archive-{$dumpInfo->ts}.vol{$seq}.tar.bz2";
 		$tmpTarget = Fs::mkExactTempName($target);
-		$cmd = sprintf("/bin/tar jcf %s --listed-incremental=%s -C %s . 2> /dev/null",
+		$cmd = sprintf("%s jcf %s --listed-incremental=%s -C %s . 2> /dev/null",
+					   escapeshellarg($this->tarExe),
 					   escapeshellarg($tmpTarget),
 					   escapeshellarg($snapshotFile),
 					   escapeshellarg($this->path));
@@ -115,7 +119,8 @@ class DirDumpJob
 		$dumpInfo = new DirDumpInfo();
 		$target = "archive-{$dumpInfo->ts}.tar.bz2";
 		$tmpTarget = Fs::mkExactTempName($target);
-		$cmd = sprintf("/bin/tar jcf %s -C %s . 2> /dev/null",
+		$cmd = sprintf("%s jcf %s -C %s . 2> /dev/null",
+					   escapeshellarg($this->tarExe),
 					   escapeshellarg($tmpTarget),
 					   escapeshellarg($this->path));
 

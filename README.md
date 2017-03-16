@@ -104,8 +104,8 @@ There is:
 
 ### Main configuration
 
-The main configuration file is */usr/local/etc/yabt/main.conf*. It contains
-
+The main configuration file is */usr/local/etc/yabt/main.conf*. It contains a
+number of global settings
 
 Format:
 
@@ -113,10 +113,15 @@ Format:
     enabled=<0|1>
     from=<email>
     recipients=<email address>[,<email addresses>]
+    smtp_hostname=<hostname>
 
     [log]
     file=<path>
-    min_level=<1-7>
+    min_level=<0-7>
+
+    [programs]
+    tar_exe=<path>
+    bzip2_exe=<path>
 
 Parameters in the `[notifications]` section configure the email notifications.
 Actual notifications are sent by notification jobs.
@@ -126,12 +131,27 @@ Actual notifications are sent by notification jobs.
   * `recipients`: Email address of
   * `smtp_hostname`: The SMTP host to use to send email
 
-Parameters in the `[log]` section:
+Parameters in the `[log]` section configure what messages and operations yabt
+logs to file:
 
   * `file`: The log file. Normally Yabt logs to */var/log/yabt/yabt.log* which is
     rotated by logrotate. There should be no need to modify this setting.
   * `min_level`: The minimum level messages should have in order to be logged
-    to file.
+    to file. Log levels are the following:
+      * 0: Emergency (LOG_EMERG)
+      * 1: Alert (LOG_ALERT)
+      * 2: Critical (LOG_CRIT)
+      * 3: Error (LOG_ERR)
+      * 4: Warning (LOG_WARNING)
+      * 5: Notice (LOG_NOTICE)
+      * 6: Informative (LOG_INFO) <- default
+      * 7: Debug (LOG_DEBUG)
+
+Parameters in the `[programs]` section configure non-default paths to some
+system utilities which are used across jobs:
+
+  * `tar_exe`: Executable of the *tar* command. Defaults to */bin/tar*.
+  * `bzip2_exe`: Executable of the *bzip2* command. Defaults to */bin/bzip2*.
 
 The main configuration file can also contain common configuration which applies
 to all relevant jobs. It can be useful to "reuse" configuration parameters
@@ -257,7 +277,11 @@ a separated section of the config file named after the dump job:
 
 #### Directory dump job
 
-Dumps a local directory into a *.tar.gz* file.
+Stores all files from a local directory into a *.tar.bz2* file.
+
+Directories are dumped using the `tar` command which is generally available on
+any GNU/Linux installation. `bzip2` is also required for compression of the
+resulting dumps.
 
 Configuration file:
 
@@ -283,7 +307,7 @@ Parameters in the `[job]` section:
   * `type`: must be `yabt\DirDumpJob`
   * `phase`: typically 2
 
-Parameters in the `[mysql]` section:
+Parameters in the `[dir]` section:
 
   * `path`: The local directory path to back up
 
@@ -297,10 +321,11 @@ the rsync job, the rdiff-backup job  or the duplicity job.
 Dumps [Subversion](https://subversion.apache.org/) repositories.
 
 Subversion repositories are dumped using the `svnadmin dump` command. Hence,
-this job requires the `svnadmin` command, which is generally available in the
-`subversion` package of your GNU/Linux distribution. Also the job must run on
-the host which serves SVN repositories, that is, where the svn repository
-directory is a local directory.
+this job requires the `svnadmin` command. `svnlook` is also required for
+incremental backups. Both are generally available in the `subversion` package
+of your GNU/Linux distribution. Also the job must run on the host which serves
+SVN repositories, that is, where the svn repository directory is a local
+directory. `bzip2` is also required for compression of the resulting dumps.
 
 Incremental dumps are supported.
 
@@ -316,7 +341,9 @@ Configuration file:
     at=<date/time of execution>
 
     [svn]
-    parent_path=/var/svnroot/repositories
+    parent_path=<path>
+    svnadmin_exe=<path to executable>
+    svnlook_exe=<path to executable>
     ; common dump job parameters, see above
     retention_period=<retention>
     full_period=<full>
@@ -331,6 +358,10 @@ Parameters in the `[job]` section:
 Parameters in the `[svn]` section:
 
   * `parent_path`: Path of the directory which contains subversion repositories.
+  * `svnadmin_exe`: Full path to the *svnadmin* executable. Defaults to
+    */usr/bin/svnadmin*.
+  * `svnlook_exe`: Full path to the *svnlook* executable. Defaults to
+    */usr/bin/svnlook*.
 
 > **LIMITATIONS:** The SVN server is not currently stopped during the dump job.
 
@@ -345,18 +376,21 @@ Example configuration file:
     at=00:30
 
     [svn]
-    retention=15
+    retention_period=15
     parent_path=/var/svnroot/repositories
     location=ftps://myftpuser:myftppass@ftphost/yabt/svnrepos
 
 
 #### MySQL dump job
 
-Dumps a [MySQL](https://www.mysql.com/) database.
+Dumps a [MySQL](https://www.mysql.com/) database. Optionally dumps also
+content stored on the filesystem but referenced by the database.
 
 Dumps are performed using the `mysqldump` utility which is generally available
 in the `mysql-client` package of your GNU/Linux distribution. It can be run by
-a remote server which has access to the database server and schema.
+a remote server which has access to the database server and schema. `bzip2` is
+required for compression of the resulting dumps. `tar` is also required to
+archive the filesystem storage, when used.
 
 Incremental dumps are not supported.
 
@@ -377,6 +411,7 @@ Configuration file:
     hostname=<db_host>
     dbname=<db_schema_name>
     storage_dir=<path to storage directory>
+    mysqldump_exe=<path to executable>
     ; common dump job parameters, see above
     retention_period=<retention>
     full_period=<full>
@@ -396,6 +431,8 @@ Parameters in the `[mysql]` section:
   * `port`: The DB server TCP/IP port (optional)
   * `dbname`: The DB schema to back-up
   * `storage_dir`: Path of the filesystem directory where files are stored (optional)
+  * `mysqldump_exe`: Full path to the *mysqldump* executable. Defaults
+    to */usr/bin/mysqldump*.
 
 > **LIMITATIONS:** The MySQL server is not currently stopped or put into
 > any kind of "exclusive access" mode. Hence it could be possible that
@@ -420,11 +457,13 @@ Example configuration file:
 
 #### Duplicity job
 
-Back up a local directory using
-[duplicity](http://duplicity.nongnu.org/), an *encrypted
-bandwidth-efficient backup using the rsync algorithm*. Duplicity backs up
-directories by producing encrypted tar-format volumes and uploading them to a
-remote or local file server.
+Back up a local directory using [duplicity](http://duplicity.nongnu.org/), an
+*encrypted bandwidth-efficient backup using the rsync algorithm*. Duplicity
+backs up directories by producing encrypted tar-format volumes and uploading
+them to a remote or local file server.
+
+Duplicity jobs require the duplicity utility to be installed. It is generally
+available in the `duplicity` package of your GNU/Linux distribution.
 
 Configuration file:
 
@@ -442,6 +481,7 @@ Configuration file:
     retention_period=<days>
     full_period=<days>
     passphrase=<the_passphrase>
+    duplicity_exe=<path_to_executable>
 
 Parameters in the `[job]` section:
 
@@ -457,6 +497,8 @@ Parameters in the `[duplicity]` section:
   * `full_period`: Number of days after which to run a full backup
   * `passphrase`: The passphrase which is used by duplicity to encrypt the
     remote backup files.
+  * `duplicity_exe`: Full path to the duplicity executable. Defaults
+    to */usr/bin/duplicity*.
 
 Example configuration file for a daily backup of the directory */home/user*,
 with a retention of 12 days and a full backup every 4 days:
@@ -508,6 +550,7 @@ Configuration:
     source=/path/to/directory
     destination=<rdiff-backup destination>
     retention_period=<2Y>
+    rdiffbackup_exe=<path to executable>
 
 Parameters in the `[job]` section:
 
@@ -527,6 +570,8 @@ Parameters in the `[rdiff-backup]` section:
     10 hours, and 7 seconds. See also rdiff-backup's `--remove-older-than`
     option.
   * `destination`:
+  * `rdiffbackup_exe`: Full path to the rdiffbackup executable. Defaults to
+    */usr/bin/rdiff-backup*.
 
 Example configuration file:
 
@@ -554,10 +599,10 @@ and the existing files in the destination. Rsync is widely used for backups and
 mirroring and as an improved copy command for everyday use.
 
 This job uses the `rsync` command to perform the actual backup. It is generally
-available in the `rsync` package of your GNU/Linux distribution, and most of
-the times is already installed. If you use rsync, you should consider
-configuring a rsync daemon on the remote server since this makes rsync much
-faster.
+available in the `rsync` package of your GNU/Linux distribution, which most of
+the times is installed by default. If you use this kind of job you should
+consider configuring a rsync daemon on the remote server since this makes rsync
+much faster.
 
 Rsync backup jobs are natively incremental. However, retention is not supported.
 
@@ -575,6 +620,7 @@ Configuration:
     [rsync]
     source=/path/to/directory
     destination=<rsync destination>
+    rsync_exe=<path to executable>
 
 Parameters in the `[job]` section:
 
@@ -591,6 +637,9 @@ Parameters in the `[rsync]` section:
 
     Please check the rsync documentation or tutorials for additional
     information on how to configure rsync.
+
+  * `rsync_exe`: Full path to the rsync executable. Defaults to
+    */usr/bin/rsync*.
 
 Example configuration file to back-up the home directory of user *myuser*:
 

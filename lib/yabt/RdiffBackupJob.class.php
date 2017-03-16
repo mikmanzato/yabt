@@ -21,16 +21,17 @@ class RdiffBackupJob
 {
 	const SECTION = 'rdiff-backup';
 	const DEFAULT_RETENTION_PERIOD = "2M";
+	const DEFAULT_RDIFFBACKUP_EXE = "/usr/bin/rdiff-backup";
 
-	/*
-	time_spec can be either an absolute time, like "2002-01-04", or a time interval.  The
+	private $rdiffbackupExe;
+	private $source;
+	private $destination;
+
+	/*	can be either an absolute time, like "2002-01-04", or a time interval.  The
 		time interval is an integer followed by the character s, m, h, D, W, M, or Y,  indicating  seconds,  min‐
 		utes, hours, days, weeks, months, or years respectively, or a number of these concatenated.  For example,
 		32m means 32 minutes, and 3W2D10h7s means 3 weeks, 2 days, 10 hours, and 7 seconds.  In this  context,  a
 		month means 30 days, a year is 365 days, and a day is always 86400 seconds.*/
-
-	private $source;
-	private $destination;
 	private $retentionPeriod;
 
 	//--------------------------------------------------------------------------
@@ -42,8 +43,12 @@ class RdiffBackupJob
 
 		$this->source = $this->conf->getRequired(self::SECTION, 'source');
 		$this->destination = $this->conf->getRequired(self::SECTION, 'destination');
-		$this->destination = $this->destination.$this->getSubdir();
+		$this->destination = Fs::joinPath($this->destination, $this->getSubdir());
 		$this->retentionPeriod = $this->conf->get(self::SECTION, 'retention_period', self::DEFAULT_RETENTION_PERIOD);
+		$this->rdiffbackupExe = $this->conf->get(self::SECTION, 'rdiffbackup_exe', self::DEFAULT_RDIFFBACKUP_EXE);
+
+		if (!file_exists($this->rdiffbackupExe) && !is_executable($this->rdiffbackupExe))
+			throw new \Exception("Not found or not executable: ".$this->rdiffbackupExe);
 	}
 
 	//--------------------------------------------------------------------------
@@ -59,11 +64,9 @@ class RdiffBackupJob
 	//------------------------------------------------------------------------------
 	protected function doRun()
 	{
-		$exe = "/usr/bin/rdiff-backup";
-
 		// Prepare and run command
 		$cmd = sprintf("%s %s %s",
-					   $exe,
+					   $this->rdiffbackupExe,
 					   escapeshellarg($this->source),
 					   escapeshellarg($this->destination));
 		$this->log(LOG_DEBUG, "Running: $cmd");
@@ -73,7 +76,7 @@ class RdiffBackupJob
 
 		// Run cleanup command
 		$cmd = sprintf("%s --remove-older-than %s %s",
-					   $exe,
+					   $this->rdiffbackupExe,
 					   escapeshellarg($this->retentionPeriod),
 					   escapeshellarg($this->destination));
 
