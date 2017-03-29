@@ -15,7 +15,7 @@ namespace yabt;
 //------------------------------------------------------------------------------
 abstract class Main
 {
-	const VERSION="1.1.0";
+	const VERSION="1.1.2";
 
 	public static $confDir = NULL;
 	public static $varDir = '/var';
