@@ -43,7 +43,7 @@ class RdiffBackupJob
 
 		$this->source = $this->conf->getRequired(self::SECTION, 'source');
 		$this->destination = $this->conf->getRequired(self::SECTION, 'destination');
-		$this->destination = Fs::joinPath($this->destination, $this->getSubdir());
+		$this->destination = $this->destination.$this->getSubdir(); // Not joinPath!
 		$this->retentionPeriod = $this->conf->get(self::SECTION, 'retention_period', self::DEFAULT_RETENTION_PERIOD);
 		$this->rdiffbackupExe = $this->conf->get(self::SECTION, 'rdiffbackup_exe', self::DEFAULT_RDIFFBACKUP_EXE);
 

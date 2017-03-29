@@ -35,7 +35,7 @@ class RsyncJob
 		if (!substr($this->source, -1) != '/')
 			$this->source .= '/';
 		$this->destination = $this->conf->getRequired(self::SECTION, 'destination');
-		$this->destination = Fs::joinPath($this->destination, $this->getSubdir());
+		$this->destination = $this->destination.$this->getSubdir();
 		if (!substr($this->destination, -1) != '/')
 			$this->destination .= '/';
 		$this->password = $this->conf->get(self::SECTION, 'password');
