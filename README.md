@@ -126,10 +126,10 @@ Format:
 Parameters in the `[notifications]` section configure the email notifications.
 Actual notifications are sent by notification jobs.
 
-  * `enabled`: Whether to send email notifications
-  * `from`: Email address of
-  * `recipients`: Email address of
-  * `smtp_hostname`: The SMTP host to use to send email
+  * `enabled`: Whether to send email notifications.
+  * `from`: Email address of the sender of the notification email.
+  * `recipients`: Email address(es) of the recipients of the notification email.
+  * `smtp_hostname`: The SMTP host to use to send email.
 
 Parameters in the `[log]` section configure what messages and operations yabt
 logs to file:
@@ -189,7 +189,8 @@ configuration file:
     [job]
     name=<name_of_job>
     type=<full name of the class implementing the job>
-    phase=<running phase, 0-10>
+    enabled=<0|1>
+    phase=<0..10>
     recurrence=<hourly|daily|weekly|monthly>
     at=<date/time of execution>
 
@@ -200,6 +201,9 @@ Parameters in the `[job]` section:
   * `type`: The type of job to run. It is the full name of the PHP class which
     implemenents the job.
   * `enabled`: When 0 the job isn't executed
+  * `phase`: Running phase. Jobs in a lower phase run earlier than jobs in a 
+    higher phase. Used to run notification jobs at later phases than dump and 
+    backup jobs.
   * `recurrence`: Defines how often the job is run. Possible choices are:
     `hourly`, `daily`, `weekly`, `monthly`
   * `at`: Defines when the job should be run. Format differs depending on the
@@ -531,9 +535,11 @@ Rdiff-backup produces backup directories which are intelligible so files can be
 easily found and restored on the destination. It is particularly suitable if one
 is under full control of the backup location.
 
-This job uses the `rdiff-backup` command to execute the actual backup. It is
-generally available in the `rdiff-backup` package of your GNU/Linux
-distribution.
+This job uses the `rdiff-backup` command to execute the actual backup. It is 
+generally available in the `rdiff-backup` package of your GNU/Linux 
+distribution. Note that, in order to access remote files, rdiff-backup opens up 
+a pipe to a copy of rdiff-backup running on the remote machine. Thus 
+rdiff-backup must be installed on both ends.
 
 Configuration:
 
@@ -569,7 +575,17 @@ Parameters in the `[rdiff-backup]` section:
     example, 32m  means  32  minutes,  and 3W2D10h7s means 3 weeks, 2 days,
     10 hours, and 7 seconds. See also rdiff-backup's `--remove-older-than`
     option.
-  * `destination`:
+  * `destination`: The location where to store the backup copy. It can be a 
+    local destination:
+        
+        /path/to/local/directory
+
+    or a destination on a remote machine:
+  
+        user@hostname::/path/to/remote/directory
+
+    In this case you should pre-initialize access to the remote machine by 
+    copying the public SSH key [for example as it is explained here](https://www.howtoforge.com/linux_rdiff_backup).
   * `rdiffbackup_exe`: Full path to the rdiffbackup executable. Defaults to
     */usr/bin/rdiff-backup*.
 
