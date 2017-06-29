@@ -1,3 +1,6 @@
+## 2017-06-29 Michele Manzato <michele.manzato@gmail.com> - 1.1.3
+* Fixed a bug with old file deletion in rdiff-backup
+
 ## 2017-03-29 Michele Manzato <michele.manzato@gmail.com> - 1.1.2
 * Fixed version number
 
