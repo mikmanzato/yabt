@@ -75,7 +75,8 @@ class RdiffBackupJob
 		$this->log(LOG_INFO, "Created new backup");
 
 		// Run cleanup command
-		$cmd = sprintf("%s --remove-older-than %s %s",
+		// MM 20170629 added "--force" option in order to actually remove older files
+		$cmd = sprintf("%s --force --remove-older-than %s %s",
 					   $this->rdiffbackupExe,
 					   escapeshellarg($this->retentionPeriod),
 					   escapeshellarg($this->destination));
