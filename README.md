@@ -201,8 +201,8 @@ Parameters in the `[job]` section:
   * `type`: The type of job to run. It is the full name of the PHP class which
     implemenents the job.
   * `enabled`: When 0 the job isn't executed
-  * `phase`: Running phase. Jobs in a lower phase run earlier than jobs in a 
-    higher phase. Used to run notification jobs at later phases than dump and 
+  * `phase`: Running phase. Jobs in a lower phase run earlier than jobs in a
+    higher phase. Used to run notification jobs at later phases than dump and
     backup jobs.
   * `recurrence`: Defines how often the job is run. Possible choices are:
     `hourly`, `daily`, `weekly`, `monthly`
@@ -232,6 +232,20 @@ Parameters in the `[job]` section:
     Note that the job is not guaranteed to run at the time indicated in the `at`
     parameter. If there is another job running at the same time the job
     execution will be deferred.
+
+  * `pre_cmd`: (available since version 1.2.0) A command to be executed before
+    running the actual job. The command MUST return 0 (success) otherwise the
+    job execution is stopped. The command may do some preparatory work (e.g.
+    stopping some services which could interfere with a clean backup) or check
+    some pre-conditions. Example:
+
+        pre_cmd=/usr/sbin/service apache2 stop
+
+  * `post_cmd`: (available since version 1.2.0) A command to be executed after
+    the actual job has been run. The command may do some cleanup work (e.g.
+    restart some services that were stopped by `pre_cmd`).
+
+        post_cmd=/usr/sbin/service apache2 start
 
 
 #### Dump jobs
@@ -535,10 +549,10 @@ Rdiff-backup produces backup directories which are intelligible so files can be
 easily found and restored on the destination. It is particularly suitable if one
 is under full control of the backup location.
 
-This job uses the `rdiff-backup` command to execute the actual backup. It is 
-generally available in the `rdiff-backup` package of your GNU/Linux 
-distribution. Note that, in order to access remote files, rdiff-backup opens up 
-a pipe to a copy of rdiff-backup running on the remote machine. Thus 
+This job uses the `rdiff-backup` command to execute the actual backup. It is
+generally available in the `rdiff-backup` package of your GNU/Linux
+distribution. Note that, in order to access remote files, rdiff-backup opens up
+a pipe to a copy of rdiff-backup running on the remote machine. Thus
 rdiff-backup must be installed on both ends.
 
 Configuration:
@@ -575,16 +589,16 @@ Parameters in the `[rdiff-backup]` section:
     example, 32m  means  32  minutes,  and 3W2D10h7s means 3 weeks, 2 days,
     10 hours, and 7 seconds. See also rdiff-backup's `--remove-older-than`
     option.
-  * `destination`: The location where to store the backup copy. It can be a 
+  * `destination`: The location where to store the backup copy. It can be a
     local destination:
-        
+
         /path/to/local/directory
 
     or a destination on a remote machine:
-  
+
         user@hostname::/path/to/remote/directory
 
-    In this case you should pre-initialize access to the remote machine by 
+    In this case you should pre-initialize access to the remote machine by
     copying the public SSH key [for example as it is explained here](https://www.howtoforge.com/linux_rdiff_backup).
   * `rdiffbackup_exe`: Full path to the rdiffbackup executable. Defaults to
     */usr/bin/rdiff-backup*.

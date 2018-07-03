@@ -45,6 +45,8 @@ abstract class Job
 	protected $name;
 	protected $recurrence;
 	protected $at;
+	protected $preCmd = NULL;
+	protected $postCmd = NULL;
 
 	protected $thisRunDt;
 	protected $ts;
@@ -73,6 +75,8 @@ abstract class Job
 		$this->enabled = (bool) $this->conf->get('job', 'enabled', TRUE);
 		$this->name = $this->conf->getRequired('job', 'name');
 		$this->phase = $this->conf->get('job', 'phase', self::DEFAULT_PHASE);
+		$this->preCmd = $this->conf->get('job', 'pre_cmd');
+		$this->postCmd = $this->conf->get('job', 'post_cmd');
 
 		$this->recurrence = $this->conf->get('job', 'recurrence', self::DEFAULT_RECURRENCE);
 		switch ($this->recurrence) {
@@ -260,10 +264,36 @@ abstract class Job
 			return;
 		}
 
-		// Run export
+		// Update last attempted run
 		$jobStatus->lastAttemptedRunDt = $now;
+
+		// Run the pre command.
+		// If it fails, the backup job aborts here
+		if ($this->preCmd) {
+			$this->log(LOG_INFO, "Running pre_cmd: $this->preCmd");
+			try {
+				$result = Shell::exec($this->preCmd);
+				if ($result)
+					$this->log(LOG_INFO, $result);
+			}
+			catch (\Exception $e) {
+				$this->log(LOG_ERR, $e->getMessage());
+				$msg = "pre_cmd failed: ".$e->getMessage();
+				$this->log(LOG_ERR, "pre_cmd failed, job execution skipped");
+
+				$jobStatus->lastRunOk = FALSE;
+				$jobStatus->lastRunErrorMsg = $msg;
+				$jobStatus->save();
+				return TRUE;
+			}
+		}
+
+		// Run the job
 		try {
+			// Run the actual job
 			$this->doRun();
+
+			// Execution successful
 			$jobStatus->lastRunDt = $now;
 			$jobStatus->lastRunOk = TRUE;
 			$jobStatus->lastRunErrorMsg = NULL;
@@ -272,6 +302,20 @@ abstract class Job
 			$jobStatus->lastRunOk = FALSE;
 			$jobStatus->lastRunErrorMsg = $e->getMessage();
 			$this->log(LOG_ERR, $e->getMessage());
+		}
+
+		// Run the post command (even if the backup job fails)
+		if ($this->postCmd) {
+			$this->log(LOG_INFO, "Running post_cmd: $this->preCmd");
+			try {
+				$result = Shell::exec($this->postCmd);
+				if ($result)
+					$this->log(LOG_INFO, $result);
+			}
+			catch (\Exception $e) {
+				$this->log(LOG_ERR, $e->getMessage());
+				$this->log(LOG_ERR, "post_cmd failed");
+			}
 		}
 
 		// Save the job status to file

@@ -1,3 +1,6 @@
+## 2018-07-03 Michele Manzato <michele.manzato@gmail.com> - 1.2.0
+* Added job options pre_cmd and post_cmd
+
 ## 2017-06-29 Michele Manzato <michele.manzato@gmail.com> - 1.1.3
 * Fixed a bug with old file deletion in rdiff-backup
 
